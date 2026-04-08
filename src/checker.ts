@@ -119,7 +119,7 @@ export async function handleVitaCheck(env: Env, checkingType: number = 0) {
                 .bind(parseInt(postId), title.trim(), date, url).run();
         }
 
-        const latest = await env.DB.prepare("SELECT post_id, post_date, post_url FROM vita ORDER BY post_date DESC LIMIT 1").first<{ post_id: number, post_date: string, post_url: string }>();
+        const latest = await env.DB.prepare("SELECT post_id, title, post_date, post_url FROM vita ORDER BY post_date DESC LIMIT 1").first<{ post_id: number, title: string, post_date: string, post_url: string }>();
 
         let status = 'success';
         const articleDate = latest?.post_date ? getTaipeiDateString(latest.post_date) : "無資料";
@@ -138,9 +138,10 @@ export async function handleVitaCheck(env: Env, checkingType: number = 0) {
         checking_status = ?, 
         latest_post_id = ?, 
         latest_post_url = ?, 
+        latest_title = ?,
         last_success_at = CASE WHEN ? = 'success' THEN datetime('now', '+8 hours') ELSE last_success_at END 
     WHERE platform = ?
-`).bind(status, latest?.post_id || null, latest?.post_url || "", status, "vita").run();
+`).bind(status, latest?.post_id || null, latest?.post_url || "", latest?.title || "", status, "vita").run();
 
     } catch (e) {
         console.error("[Vita] Error:", e);
@@ -195,8 +196,8 @@ export async function handlePeopoCheck(env: Env, checkingType: number = 0) {
 
         // 讀取資料庫中最新的文章記錄進行監控判斷
         const latest = await env.DB.prepare(
-            "SELECT post_id, post_date, post_url FROM peopo ORDER BY post_date DESC LIMIT 1"
-        ).first<{ post_id: number, post_date: string, post_url: string }>();
+            "SELECT post_id, title, post_date, post_url FROM peopo ORDER BY post_date DESC LIMIT 1"
+        ).first<{ post_id: number, title: string, post_date: string, post_url: string }>();
 
         let status = 'success';
         const articleDate = latest?.post_date ? getTaipeiDateString(latest.post_date) : "無資料";
@@ -216,9 +217,10 @@ export async function handlePeopoCheck(env: Env, checkingType: number = 0) {
                 checking_status = ?, 
                 latest_post_id = ?, 
                 latest_post_url = ?, 
+                latest_title = ?,
                 last_success_at = CASE WHEN ? = 'success' THEN datetime('now', '+8 hours') ELSE last_success_at END 
             WHERE platform = 'peopo'
-        `).bind(status, latest?.post_id || null, latest?.post_url || "", status).run();
+        `).bind(status, latest?.post_id || null, latest?.post_url || "", latest?.title || "", status).run();
 
     } catch (e) {
         console.error("[Peopo] Error:", e);

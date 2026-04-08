@@ -36,7 +36,8 @@ CREATE TABLE IF NOT EXISTS monitor_status (
     last_success_at DATETIME,            -- last time new articles were found
     checking_status TEXT DEFAULT 'pending', -- 'success', 'missing', 'error'
     latest_post_id INTEGER,              -- latest post ID
-    latest_post_url TEXT                 -- latest post URL
+    latest_post_url TEXT,                -- latest post URL
+    latest_title TEXT                    -- latest post title
 );
 
 -- init

@@ -80,16 +80,16 @@ export const dashboardHtml = `
                             
                             <div class="space-y-3 text-sm text-gray-600">
                                 <p class="flex justify-between border-b border-gray-100 pb-2">
-                                    <span class="font-medium text-gray-500">最後檢查時間：</span>
-                                    <span>\${toLocal(item.last_check_at)}</span>
-                                </p>
-                                <p class="flex justify-between border-b border-gray-100 pb-2">
                                     <span class="font-medium text-gray-500">近期成功更新：</span>
                                     <span>\${toLocal(item.last_success_at)}</span>
                                 </p>
                                 <p class="flex justify-between border-b border-gray-100 pb-2">
                                     <span class="font-medium text-gray-500">最新文章 ID：</span>
                                     <span class="font-mono bg-gray-100 px-1 rounded">\${item.latest_post_id || '無'}</span>
+                                </p>
+                                <p class="flex justify-between border-b border-gray-100 pb-2">
+                                    <span class="font-medium text-gray-500">最新文章標題：</span>
+                                    <span class="truncate ml-4 flex-1 text-right" title="\${item.latest_title || '無'}">\${item.latest_title || '無'}</span>
                                 </p>
                                 \${item.latest_post_url ? \`
                                     <div class="pt-3">
@@ -104,7 +104,7 @@ export const dashboardHtml = `
                     grid.innerHTML += card;
                 });
 
-                document.getElementById('last-updated').innerText = '指標最後更新於：' + new Date().toLocaleString('zh-TW');
+                document.getElementById('last-updated').innerText = '頁面最後更新於：' + new Date().toLocaleString('zh-TW');
 
             } catch (err) {
                 console.error(err);
@@ -125,7 +125,6 @@ export const dashboardHtml = `
                 const res = await fetch(\`/test-\${platform}\`);
                 const msg = await res.text();
                 
-                // 為了讓使用者可以看清楚 Loading 動畫，強制最少顯示 500ms
                 setTimeout(() => {
                     fetchStatus(); // 重新讀取資料
                     alert(\`\${platform.toUpperCase()} 平台檢查完成：\\n\${msg}\`);
@@ -141,9 +140,7 @@ export const dashboardHtml = `
             }
         }
 
-        // 初始化載入
         fetchStatus();
-        // 每 5 分鐘自動刷新
         setInterval(fetchStatus, 5 * 60 * 1000);
     </script>
 </body>
