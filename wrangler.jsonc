@@ -21,7 +21,7 @@
 	],
 	"d1_databases": [
 		{
-			"binding": "noticer_db",
+			"binding": "DB",
 			"database_name": "noticer-db",
 			"database_id": "2f113373-d4de-4f16-bb60-4c90226fb20d"
 		}

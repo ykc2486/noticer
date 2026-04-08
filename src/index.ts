@@ -4,37 +4,69 @@
  * This is a template for a Scheduled Worker: a Worker that can run on a
  * configurable interval:
  * https://developers.cloudflare.com/workers/platform/triggers/cron-triggers/
- *
- * - Run `npm run dev` in your terminal to start a development server
- * - Run `curl "http://localhost:8787/__scheduled?cron=*+*+*+*+*"` to see your Worker in action
- * - Run `npm run deploy` to publish your Worker
- *
- * Bind resources to your Worker in `wrangler.jsonc`. After adding bindings, a type definition for the
- * `Env` object can be regenerated with `npm run cf-typegen`.
- *
- * Learn more at https://developers.cloudflare.com/workers/
  */
 
+import { handleVitaCheck, handlePeopoCheck } from './checker';
+
+export interface Env {
+    DB: D1Database;
+}
+
 export default {
-	async fetch(req) {
-		const url = new URL(req.url);
-		url.pathname = '/__scheduled';
-		url.searchParams.append('cron', '* * * * *');
-		return new Response(`To test the scheduled handler, ensure you have used the "--test-scheduled" then try running "curl ${url.href}".`);
-	},
+    /**
+     * HTTP Entry point for testing
+     * Trigger specific check functions via URL
+     */
+    async fetch(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+        const url = new URL(req.url);
 
-	// The scheduled handler is invoked at the interval set in our wrangler.jsonc's
-	// [[triggers]] configuration.
-	async scheduled(event, env, ctx): Promise<void> {
-		// A Cron Trigger can make requests to other endpoints on the Internet,
-		// publish to a Queue, query a D1 Database, and much more.
-		//
-		// We'll keep it simple and make an API call to a Cloudflare API:
-		let resp = await fetch('https://api.cloudflare.com/client/v4/ips');
-		let wasSuccessful = resp.ok ? 'success' : 'fail';
+        // Test Vita: http://localhost:8787/test-vita
+        if (url.pathname === '/test-vita') {
+            console.log("--- Manual Trigger: Vita Check ---");
+            await handleVitaCheck(env, 1); 
+            return new Response("Vita check completed. Check terminal logs.");
+        }
 
-		// You could store this result in KV, write to a D1 Database, or publish to a Queue.
-		// In this template, we'll just log the result:
-		console.log(`trigger fired at ${event.cron}: ${wasSuccessful}`);
-	},
+        // Test Peopo: http://localhost:8787/test-peopo
+        if (url.pathname === '/test-peopo') {
+            console.log("--- Manual Trigger: Peopo Check ---");
+            await handlePeopoCheck(env, 1);
+            return new Response("Peopo check completed. Check terminal logs.");
+        }
+
+        // Default: Show current DB status
+        try {
+            const { results } = await env.DB.prepare("SELECT * FROM monitor_status").all();
+            return new Response(JSON.stringify(results, null, 2), {
+                headers: { 
+                    "Content-Type": "application/json;charset=utf-8",
+                    "Access-Control-Allow-Origin": "*" 
+                }
+            });
+        } catch (e) {
+            return new Response("Database is empty or tables do not exist. Please run test routes first.");
+        }
+    },
+
+    /**
+     * Formal Cron Trigger Entry Point
+     */
+    async scheduled(controller: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
+        const now = new Date();
+        // Calculate Taiwan hour (UTC+8)
+        const taiwanHour = (now.getUTCHours() + 8) % 24;
+        
+        console.log(`[Cron] Triggered: ${controller.cron}, Taiwan Hour: ${taiwanHour}`);
+
+        // Logic based on hour
+        if (taiwanHour === 20) {
+            ctx.waitUntil(handleVitaCheck(env, 0));
+        } else if (taiwanHour === 21) {
+            ctx.waitUntil(handlePeopoCheck(env, 0));
+        } else {
+            // Optional: run both for other hours during testing if cron is * * * * *
+            ctx.waitUntil(handleVitaCheck(env, 0));
+            ctx.waitUntil(handlePeopoCheck(env, 0));
+        }
+    },
 } satisfies ExportedHandler<Env>;
