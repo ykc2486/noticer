@@ -1,7 +1,9 @@
 import { handleVitaCheck, handlePeopoCheck } from './checker';
+import { dashboardHtml } from './dashboard';
 
 export interface Env {
     DB: D1Database;
+	RESEND_API_KEY: string; 
 }
 
 export default {
@@ -22,18 +24,34 @@ export default {
             return new Response("Peopo check manual trigger completed.");
         }
 
-        // Default: API Dashboard Status
-        try {
-            const { results } = await env.DB.prepare("SELECT * FROM monitor_status").all();
-            return new Response(JSON.stringify(results, null, 2), {
+        // Return HTML dashboard on root
+        if (url.pathname === '/') {
+            return new Response(dashboardHtml, {
                 headers: { 
-                    "Content-Type": "application/json;charset=utf-8",
-                    "Access-Control-Allow-Origin": "*" 
+                    "Content-Type": "text/html;charset=utf-8" 
                 }
             });
-        } catch (e) {
-            return new Response("Database error or tables not initialized.");
         }
+
+        // API Status endpoint for dashboard
+        if (url.pathname === '/api/status') {
+            try {
+                const { results } = await env.DB.prepare("SELECT * FROM monitor_status").all();
+                return new Response(JSON.stringify(results, null, 2), {
+                    headers: { 
+                        "Content-Type": "application/json;charset=utf-8",
+                        "Access-Control-Allow-Origin": "*" 
+                    }
+                });
+            } catch (e) {
+                return new Response(JSON.stringify({ error: "Database error or tables not initialized." }), { 
+                    status: 500,
+                    headers: { "Content-Type": "application/json;charset=utf-8" }
+                });
+            }
+        }
+
+        return new Response("Not Found", { status: 404 });
     },
 
     /**
