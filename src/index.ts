@@ -1,11 +1,3 @@
-/**
- * Welcome to Cloudflare Workers!
- *
- * This is a template for a Scheduled Worker: a Worker that can run on a
- * configurable interval:
- * https://developers.cloudflare.com/workers/platform/triggers/cron-triggers/
- */
-
 import { handleVitaCheck, handlePeopoCheck } from './checker';
 
 export interface Env {
@@ -14,27 +6,23 @@ export interface Env {
 
 export default {
     /**
-     * HTTP Entry point for testing
-     * Trigger specific check functions via URL
+     * HTTP Entry point for testing & dashboard
      */
     async fetch(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
         const url = new URL(req.url);
 
-        // Test Vita: http://localhost:8787/test-vita
+        // Manual Test Routes
         if (url.pathname === '/test-vita') {
-            console.log("--- Manual Trigger: Vita Check ---");
             await handleVitaCheck(env, 1); 
-            return new Response("Vita check completed. Check terminal logs.");
+            return new Response("Vita check manual trigger completed.");
         }
 
-        // Test Peopo: http://localhost:8787/test-peopo
         if (url.pathname === '/test-peopo') {
-            console.log("--- Manual Trigger: Peopo Check ---");
             await handlePeopoCheck(env, 1);
-            return new Response("Peopo check completed. Check terminal logs.");
+            return new Response("Peopo check manual trigger completed.");
         }
 
-        // Default: Show current DB status
+        // Default: API Dashboard Status
         try {
             const { results } = await env.DB.prepare("SELECT * FROM monitor_status").all();
             return new Response(JSON.stringify(results, null, 2), {
@@ -44,29 +32,18 @@ export default {
                 }
             });
         } catch (e) {
-            return new Response("Database is empty or tables do not exist. Please run test routes first.");
+            return new Response("Database error or tables not initialized.");
         }
     },
 
     /**
-     * Formal Cron Trigger Entry Point
+     * Cron Trigger: Runs every hour (0 * * * *)
      */
     async scheduled(controller: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
-        const now = new Date();
-        // Calculate Taiwan hour (UTC+8)
-        const taiwanHour = (now.getUTCHours() + 8) % 24;
+        console.log(`[Cron] Triggered at UTC: ${new Date().toISOString()}`);
         
-        console.log(`[Cron] Triggered: ${controller.cron}, Taiwan Hour: ${taiwanHour}`);
-
-        // Logic based on hour
-        if (taiwanHour === 20) {
-            ctx.waitUntil(handleVitaCheck(env, 0));
-        } else if (taiwanHour === 21) {
-            ctx.waitUntil(handlePeopoCheck(env, 0));
-        } else {
-            // Optional: run both for other hours during testing if cron is * * * * *
-            ctx.waitUntil(handleVitaCheck(env, 0));
-            ctx.waitUntil(handlePeopoCheck(env, 0));
-        }
+        // We push both tasks into waitUntil to ensure they complete
+        ctx.waitUntil(handleVitaCheck(env, 0));
+        ctx.waitUntil(handlePeopoCheck(env, 0));
     },
 } satisfies ExportedHandler<Env>;
