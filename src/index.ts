@@ -55,7 +55,7 @@ export default {
     },
 
     /**
-     * Cron Trigger: Runs every hour (0 * * * *)
+     * Cron Trigger: Runs every hour (5 * * * *)
      */
     async scheduled(controller: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
         console.log(`[Cron] Triggered at UTC: ${new Date().toISOString()}`);
