@@ -9,7 +9,6 @@ export const dashboardHtml = `
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 <body class="bg-gray-50 min-h-screen">
-    // BY Gemini LOL
     <div class="max-w-4xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
         <h1 class="text-3xl font-bold text-gray-900 mb-8">
             <i class="fas fa-satellite-dish mr-2 text-blue-500"></i>監控面板
