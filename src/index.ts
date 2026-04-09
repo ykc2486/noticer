@@ -83,8 +83,8 @@ export default {
             }
         }
 
-        // Secret Image endpoint
-        if (url.pathname === '/api/easter-egg') {
+        // Easter Egg Route
+        if (url.pathname === '/api/ZWFzdGVyZWdn') {
             const token = url.searchParams.get('token');
             if (!token || !env.SECRET_DATE) {
                 return new Response("Not Found", { status: 404 });
