@@ -8,7 +8,19 @@
 	"main": "src/index.ts",
 	"compatibility_date": "2026-04-07",
 	"observability": {
-		"enabled": true
+		"enabled": false,
+		"head_sampling_rate": 1,
+		"logs": {
+			"enabled": true,
+			"head_sampling_rate": 1,
+			"persist": true,
+			"invocation_logs": true
+		},
+		"traces": {
+			"enabled": false,
+			"persist": true,
+			"head_sampling_rate": 1
+		}
 	},
 	"triggers": {
 		"crons": [
@@ -24,6 +36,12 @@
 			"binding": "DB",
 			"database_name": "noticer-db",
 			"database_id": "2f113373-d4de-4f16-bb60-4c90226fb20d"
+		}
+	],
+	"r2_buckets": [
+		{
+			"binding": "MY_BUCKET",
+			"bucket_name": "noticer-bucket"
 		}
 	]
 	/**

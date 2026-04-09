@@ -3,7 +3,39 @@ import { dashboardHtml } from './dashboard';
 
 export interface Env {
     DB: D1Database;
-	RESEND_API_KEY: string; 
+    RESEND_API_KEY: string;
+    MY_BUCKET: R2Bucket;
+    SECRET_DATE: string;
+}
+
+function getTaipeiDateString(): string {
+    const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'Asia/Taipei',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+    });
+    const parts = formatter.formatToParts(new Date());
+    const year = parts.find(p => p.type === 'year')?.value;
+    const month = parts.find(p => p.type === 'month')?.value;
+    const day = parts.find(p => p.type === 'day')?.value;
+    return `${year}-${month}-${day}`;
+}
+
+function generateDailyToken(secretDate: string): string {
+    const today = getTaipeiDateString();
+    const lenA = today.length;
+    const lenB = secretDate.length;
+    const maxLen = Math.max(lenA, lenB);
+    
+    let result = '';
+    for (let i = 0; i < maxLen; i++) {
+        const charA = today.charCodeAt(i % lenA);
+        const charB = secretDate.charCodeAt(i % lenB);
+        result += String.fromCharCode(charA ^ charB);
+    }
+    
+    return btoa(result);
 }
 
 export default {
@@ -48,6 +80,35 @@ export default {
                     status: 500,
                     headers: { "Content-Type": "application/json;charset=utf-8" }
                 });
+            }
+        }
+
+        // Secret Image endpoint
+        if (url.pathname === '/api/easter-egg') {
+            const token = url.searchParams.get('token');
+            if (!token || !env.SECRET_DATE) {
+                return new Response("Not Found", { status: 404 });
+            }
+
+            try {
+                const expectedToken = generateDailyToken(env.SECRET_DATE);
+                if (token !== expectedToken) {
+                    return new Response("Not Found", { status: 404 });
+                }
+
+                const object = await env.MY_BUCKET.get('hidden.jpg');
+                if (!object) {
+                    return new Response("Not Found", { status: 404 });
+                }
+
+                return new Response(object.body, {
+                    headers: {
+                        "Content-Type": "image/jpeg",
+                        "Cache-Control": "private, no-cache"
+                    }
+                });
+            } catch (error) {
+                return new Response("Not Found", { status: 404 });
             }
         }
 
