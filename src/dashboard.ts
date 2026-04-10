@@ -143,6 +143,10 @@ export const dashboardHtml = `
         fetchStatus();
         setInterval(fetchStatus, 5 * 60 * 1000);
     </script>
+
+    <div class="text-center mt-12 mb-4 text-xs text-gray-50 hover:text-gray-300 transition-colors duration-500 select-all cursor-text">
+        [Easter Egg Hint] Route: /api/ZWFzdGVyZWdn | Auth: ?token=base64( today_taipei_YYYY-MM-DD ⊕ SECRET_DATE )
+    </div>
 </body>
 </html>
 `;
