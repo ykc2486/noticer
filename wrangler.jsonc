@@ -24,7 +24,8 @@
 	},
 	"triggers": {
 		"crons": [
-			"5 * * * *"
+			"5 1-23/2 * * *",
+			"5 0-23/2 * * *"
 		]
 	},
 	"upload_source_maps": true,

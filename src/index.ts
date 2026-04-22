@@ -116,13 +116,18 @@ export default {
     },
 
     /**
-     * Cron Trigger: Runs every hour (5 * * * *)
+     * Cron Trigger
      */
     async scheduled(controller: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
         console.log(`[Cron] Triggered at UTC: ${new Date().toISOString()}`);
         
-        // We push both tasks into waitUntil to ensure they complete
-        ctx.waitUntil(handleVitaCheck(env, 0));
-        ctx.waitUntil(handlePeopoCheck(env, 0));
+        const cronTrigger = controller.cron;
+
+        if (cronTrigger === "5 1-23/2 * * *") {
+            ctx.waitUntil(handlePeopoCheck(env, 0));
+        }
+        else {
+            ctx.waitUntil(handleVitaCheck(env, 0));
+        }
     },
 } satisfies ExportedHandler<Env>;

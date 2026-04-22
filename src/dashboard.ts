@@ -56,10 +56,10 @@ export const dashboardHtml = `
                     const statusIcon = isSuccess ? 'fa-check-circle text-green-500' : 'fa-exclamation-triangle text-red-500';
                     const statusText = isSuccess ? '正常 (Success)' : '異常/缺稿 (Missing)';
 
-                    // Helper: 處理日期字串轉換 (API 已回傳 UTC+8，直接當作本地時間解析)
+                    // Helper: parse date string (API already returns UTC+8, treat as local time)
                     const toLocal = (timeStr) => {
                         if (!timeStr) return '無紀錄';
-                        // 移除可能的 Z 並將空格轉為 T，避免被當作 UTC 進行多餘轉換
+                        // Remove possible Z and change space to T to avoid extra UTC conversion
                         const t = timeStr.replace('Z', '').replace(' ', 'T'); 
                         return new Date(t).toLocaleString('zh-TW', {
                             year: 'numeric', month: '2-digit', day: '2-digit', 
@@ -126,7 +126,7 @@ export const dashboardHtml = `
                 const msg = await res.text();
                 
                 setTimeout(() => {
-                    fetchStatus(); // 重新讀取資料
+                    fetchStatus(); // Reload data
                     alert(\`\${platform.toUpperCase()} 平台檢查完成：\\n\${msg}\`);
                     btn.innerHTML = originalText;
                     btn.disabled = false;

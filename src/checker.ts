@@ -1,11 +1,10 @@
 import { Env } from './index';
 
 /**
- * 工具函數：獲取台灣時間狀態
+ * Utility: get Taipei time status
  */
 function getTaipeiStatus(deadlineHour: number, deadlineMinute: number = 0) {
     const now = new Date();
-    // 使用 hourCycle: 'h23' 避免產生 '24' 點的問題
     const parts = new Intl.DateTimeFormat('zh-TW', {
         timeZone: 'Asia/Taipei',
         year: 'numeric', month: '2-digit', day: '2-digit',
@@ -13,21 +12,21 @@ function getTaipeiStatus(deadlineHour: number, deadlineMinute: number = 0) {
     }).formatToParts(now);
 
     const t = Object.fromEntries(parts.map(p => [p.type, p.value]));
-    // 確保月份和日期為雙位數，避免不同環境行為不一致
+    // Keep month and day as two digits for consistent behavior
     const todayStr = `${t.year}-${t.month.padStart(2, '0')}-${t.day.padStart(2, '0')}`;
     const currentTotalMins = parseInt(t.hour) * 60 + parseInt(t.minute);
     const deadlineTotalMins = deadlineHour * 60 + deadlineMinute;
     
     return {
         todayStr,
-        isPublishingDay: [1, 3, 5].includes(now.getDay()), // 週一、三、五
+        isPublishingDay: [1, 3, 5].includes(now.getDay()), // Mon, Wed, Fri
         isPastDeadline: currentTotalMins >= deadlineTotalMins,
         timeLabel: `${t.hour}:${t.minute}`
     };
 }
 
 /**
- * 工具函數：將 UTC 日期字串安全地轉換為台灣時間的 YYYY-MM-DD 格式
+ * Utility: safely convert a UTC date string to Taipei YYYY-MM-DD
  */
 function getTaipeiDateString(utcDateStr: string): string {
     const date = new Date(utcDateStr);
@@ -38,11 +37,11 @@ function getTaipeiDateString(utcDateStr: string): string {
 }
 
 /**
- * 發送電子郵件報警給所有訂閱者 (生產環境版 - 使用 Resend Batch API)
+ * Send alert emails to all subscribers (production version using Resend Batch API)
  */
 async function sendEmailAlertToSubscribers(env: Env, platform: string, latestDate: string) {
     if (!env.RESEND_API_KEY) {
-        console.error("[Alert] 錯誤: 缺少 RESEND_API_KEY 環境變數。");
+        console.error("[Alert] Missing Resend API key. Cannot send email alerts.");
         return;
     }
 
@@ -52,15 +51,15 @@ async function sendEmailAlertToSubscribers(env: Env, platform: string, latestDat
         ).all<{ email: string }>();
 
         if (!results || results.length === 0) {
-            console.log(`[Alert] 資料庫中無任何訂閱者，取消發送 ${platform} 通知。`);
+            console.log(`[Alert] no subscribers for ${platform} notifications.`);
             return;
         }
 
         const fromEmail = "Noticer Alert <alert@trashcode.dev>";
-        console.log(`[Alert] 準備向 ${results.length} 位訂閱者發送 ${platform} 通知...`);
+        console.log(`[Alert] sending ${platform} notifications to ${results.length} subscribers...`);
 
-        // 構建批次發送陣列，解決隱私問題 (收件者彼此看不到) 以及單次收件人數限制
-        // 注意：Resend Batch API 單次請求上限通常為 100 封，若超過 100 位訂閱者，需另行撰寫分批 (Chunking) 邏輯
+        // Build batch email payloads for privacy and per-request recipient limits
+        // Note: Resend Batch API usually allows up to 100 emails per request
         const emailPayloads = results.map(r => ({
             from: fromEmail,
             to: [r.email], 
@@ -97,12 +96,12 @@ async function sendEmailAlertToSubscribers(env: Env, platform: string, latestDat
             console.error(`[Alert] Resend API 報錯: ${await res.text()}`);
         }
     } catch (err) {
-        console.error("[Alert] 執行 sendEmailAlertToSubscribers 時發生錯誤:", err);
+        console.error("[Alert] sendEmailAlertToSubscribers:", err);
     }
 }
 
 /**
- * Vita.tw 檢查邏輯 (20:00 死線)
+ * Vita.tw check logic (deadline: 20:00)
  */
 export async function handleVitaCheck(env: Env, checkingType: number = 0) {
     const { todayStr, isPublishingDay, isPastDeadline } = getTaipeiStatus(20, 0);
@@ -126,7 +125,7 @@ export async function handleVitaCheck(env: Env, checkingType: number = 0) {
 
         if (latest && articleDate !== todayStr && isPublishingDay && isPastDeadline) {
             status = 'missing';
-            // 只有自動排程 (checkingType 0) 才觸發發信
+            // Only auto schedule (checkingType 0) sends email alerts
             if (checkingType === 0) {
                 await sendEmailAlertToSubscribers(env, "Vita.tw", articleDate);
             }
@@ -149,19 +148,19 @@ export async function handleVitaCheck(env: Env, checkingType: number = 0) {
 }
 
 /**
- * Peopo 檢查邏輯 (21:00 死線)
+ * Peopo check logic (deadline: 21:00)
  */
 export async function handlePeopoCheck(env: Env, checkingType: number = 0) {
-    // 取得台北當前時間狀態
+    // Get current Taipei time status
     const { todayStr, isPublishingDay, isPastDeadline } = getTaipeiStatus(21, 0);
 
-    // 定義一個內部輔助函數來提取標籤內容並過濾 CDATA
+    // Internal helper to extract tag content and remove CDATA
     const extractContent = (xmlItem: string, tagName: string) => {
-        // 匹配標籤內容，考慮到標籤可能帶有屬性如 <link rel="...">
+        // Match tag content (tag may include attributes like <link rel="...">)
         const regex = new RegExp(`<${tagName}[^>]*>([\\s\\S]*?)<\\/${tagName}>`);
         const match = xmlItem.match(regex);
         if (!match) return "";
-        // 移除 CDATA 包裹層並修剪空白 [cite: 1, 2]
+        // Remove CDATA wrapper and trim spaces
         return match[1].replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1').trim();
     };
 
@@ -169,32 +168,32 @@ export async function handlePeopoCheck(env: Env, checkingType: number = 0) {
         const res = await fetch("https://www.peopo.org/rss-news"); 
         const xml = await res.text();
         
-        // 分割每一個新聞項目 [cite: 1, 2, 3, 4]
+        // Split each news item
         const itemRegex = /<item>([\s\S]*?)<\/item>/g;
         let match;
 
         while ((match = itemRegex.exec(xml)) !== null) {
             const item = match[1];
             
-            // 提取關鍵欄位
-            const creator = extractContent(item, "dc:creator"); // [cite: 1, 2]
-            const title = extractContent(item, "title"); // [cite: 1, 2]
-            const url = extractContent(item, "link"); // [cite: 1, 2]
-            const dateRaw = extractContent(item, "pubDate"); // [cite: 1, 2]
+            // Extract key fields
+            const creator = extractContent(item, "dc:creator"); 
+            const title = extractContent(item, "title"); 
+            const url = extractContent(item, "link"); 
+            const dateRaw = extractContent(item, "pubDate"); 
 
-            // 核心判斷：過濾特定作者「輔大生命力新聞」 
+            // Core rule: only keep posts from "輔大生命力新聞"
             if (creator === "輔大生命力新聞") {
                 const date = new Date(dateRaw).toISOString();
                 const pid = parseInt(url.split('/').pop() || "0");
                 
-                // 寫入資料庫，若 post_id 已存在則忽略
+                // Save to DB, ignore if post_id already exists
                 await env.DB.prepare(
                     "INSERT OR IGNORE INTO peopo (post_id, title, post_date, post_url) VALUES (?, ?, ?, ?)"
                 ).bind(pid, title, date, url).run();
             }
         }
 
-        // 讀取資料庫中最新的文章記錄進行監控判斷
+        // Read latest post from DB for monitoring check
         const latest = await env.DB.prepare(
             "SELECT post_id, title, post_date, post_url FROM peopo ORDER BY post_date DESC LIMIT 1"
         ).first<{ post_id: number, title: string, post_date: string, post_url: string }>();
@@ -202,7 +201,7 @@ export async function handlePeopoCheck(env: Env, checkingType: number = 0) {
         let status = 'success';
         const articleDate = latest?.post_date ? getTaipeiDateString(latest.post_date) : "無資料";
 
-        // 監控邏輯：若應發稿日過期且最新文章日期不符，則標記為 missing
+        // Monitoring rule: if deadline passed and latest date is not today, mark as missing
         if (latest && articleDate !== todayStr && isPublishingDay && isPastDeadline) {
             status = 'missing';
             if (checkingType === 0) {
@@ -210,7 +209,7 @@ export async function handlePeopoCheck(env: Env, checkingType: number = 0) {
             }
         }
 
-        // 更新監控狀態表
+        // Update monitoring status table
         await env.DB.prepare(`
             UPDATE monitor_status 
             SET last_check_at = datetime('now', '+8 hours'), 
