@@ -84,33 +84,33 @@ export default {
         }
 
         // Easter Egg Route
-        if (url.pathname === '/api/ZWFzdGVyZWdn') {
-            const token = url.searchParams.get('token');
-            if (!token || !env.SECRET_DATE) {
-                return new Response("Not Found", { status: 404 });
-            }
+        // if (url.pathname === '/api/ZWFzdGVyZWdn') {
+        //     const token = url.searchParams.get('token');
+        //     if (!token || !env.SECRET_DATE) {
+        //         return new Response("Not Found", { status: 404 });
+        //     }
 
-            try {
-                const expectedToken = generateDailyToken(env.SECRET_DATE);
-                if (token !== expectedToken) {
-                    return new Response("Not Found", { status: 404 });
-                }
+        //     try {
+        //         const expectedToken = generateDailyToken(env.SECRET_DATE);
+        //         if (token !== expectedToken) {
+        //             return new Response("Not Found", { status: 404 });
+        //         }
 
-                const object = await env.MY_BUCKET.get('hidden.jpg');
-                if (!object) {
-                    return new Response("Not Found", { status: 404 });
-                }
+        //         const object = await env.MY_BUCKET.get('hidden.jpg');
+        //         if (!object) {
+        //             return new Response("Not Found", { status: 404 });
+        //         }
 
-                return new Response(object.body, {
-                    headers: {
-                        "Content-Type": "image/jpeg",
-                        "Cache-Control": "private, no-cache"
-                    }
-                });
-            } catch (error) {
-                return new Response("Not Found", { status: 404 });
-            }
-        }
+        //         return new Response(object.body, {
+        //             headers: {
+        //                 "Content-Type": "image/jpeg",
+        //                 "Cache-Control": "private, no-cache"
+        //             }
+        //         });
+        //     } catch (error) {
+        //         return new Response("Not Found", { status: 404 });
+        //     }
+        // }
 
         return new Response("Not Found", { status: 404 });
     },
@@ -123,7 +123,7 @@ export default {
         
         const cronTrigger = controller.cron;
 
-        if (cronTrigger === "5 1-23/2 * * *") {
+        if (cronTrigger === "4 1-23/2 * * *") {
             ctx.waitUntil(handlePeopoCheck(env, 0));
         }
         else {
